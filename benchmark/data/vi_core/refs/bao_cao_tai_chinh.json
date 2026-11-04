@@ -1,0 +1,86 @@
+{
+  "headings": [
+    "BÁO CÁO TÀI CHÍNH QUÝ III/2026",
+    "MỤC LỤC",
+    "1. Tổng quan hoạt động",
+    "2. Kết quả kinh doanh theo tháng",
+    "3. Cơ cấu chi phí",
+    "4. Kế hoạch quý IV",
+    "4.1. Các ưu tiên chính",
+    "5. Kết luận"
+  ],
+  "toc": [
+    "1. Tổng quan hoạt động",
+    "2. Kết quả kinh doanh theo tháng",
+    "3. Cơ cấu chi phí",
+    "4. Kế hoạch quý IV",
+    "5. Kết luận"
+  ],
+  "header": [],
+  "footer": [],
+  "tables": [
+    [
+      [
+        "Tháng",
+        "Doanh thu (tỷ đồng)",
+        "Chi phí (tỷ đồng)",
+        "Lợi nhuận (tỷ đồng)",
+        "Ghi chú"
+      ],
+      [
+        "Tháng 7",
+        "41,2",
+        "36,1",
+        "5,1",
+        ""
+      ],
+      [
+        "Tháng 8",
+        "43,5",
+        "37,8",
+        "5,7",
+        ""
+      ],
+      [
+        "Tháng 9",
+        "43,7",
+        "38,2",
+        "5,5",
+        "Số liệu tạm tính"
+      ],
+      [
+        "Cộng quý",
+        "128,4",
+        "112,1",
+        "16,3",
+        ""
+      ]
+    ],
+    [
+      [
+        "Chỉ tiêu",
+        "Đầu kỳ",
+        "Cuối kỳ",
+        "Chênh lệch"
+      ],
+      [
+        "Tài sản ngắn hạn",
+        "96,3",
+        "104,8",
+        "+8,5"
+      ],
+      [
+        "Tài sản dài hạn",
+        "71,2",
+        "74,1",
+        "+2,9"
+      ],
+      [
+        "Tổng tài sản",
+        "167,5",
+        "178,9",
+        "+11,4"
+      ]
+    ]
+  ]
+}

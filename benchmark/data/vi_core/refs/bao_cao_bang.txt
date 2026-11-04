@@ -1,0 +1,37 @@
+BÁO CÁO TỔNG HỢP KINH DOANH 6 THÁNG
+Công ty Cổ phần Dữ liệu Mẫu
+Báo cáo tổng hợp kết quả kinh doanh sáu tháng đầu năm 2026 theo khu vực, nhóm sản phẩm và kênh bán hàng. Số liệu đã được rà soát bởi phòng kế toán.
+1. Kết quả theo tháng
+Tháng	Doanh thu	Chi phí	Lợi nhuận	Tỷ lệ hoàn thành	Ghi chú
+Tháng 1	112,5	96,8	15,7	98%
+Tháng 2	105,2	91,4	13,8	94%	Tết Nguyên đán
+Tháng 3	121,8	101,2	20,6	107%
+Tháng 4	118,4	99,7	18,7	104%
+Tháng 5	124,1	103,5	20,6	109%	Cao điểm
+Tháng 6	129,7	107,8	21,9	114%
+Cộng	711,7	600,4	111,3	104%
+2. Kết quả theo khu vực
+Khu vực miền Nam tiếp tục đóng góp tỷ trọng lớn nhất với 48,6% doanh thu. Khu vực miền Bắc tăng trưởng 8,4% so với cùng kỳ nhờ mở rộng hệ thống phân phối.
+Nhóm	Chỉ tiêu	Quý I	Quý II	Tăng trưởng
+Doanh thu	Miền Bắc	40,2	42,1	4,7%
+Miền Nam	45,1	48,6	7,8%
+Tổng	Toàn quốc	85,3	90,7	6,3%
+3. Cơ cấu theo kênh bán hàng
+Kênh	Doanh thu	Tỷ trọng	Chi phí bán hàng
+Cửa hàng truyền thống	356,2	50,1%	28,4
+Đại lý phân phối	188,4	26,5%	12,1
+Bán hàng trực tuyến	142,6	20,0%	16,8
+Kênh khác	24,5	3,4%	2,2
+4. Tổng hợp chỉ tiêu tài chính
+Chỉ tiêu	Thực hiện	Kế hoạch	Chênh lệch
+Doanh thu thuần	711,7	690,0	+21,7
+Giá vốn hàng bán	600,4	590,0	+10,4
+Lợi nhuận gộp	111,3	100,0	+11,3
+Chi phí quản lý	34,2	33,0	+1,2
+Lợi nhuận sau thuế	61,7	53,6	+8,1
+5. Nhận xét
+Sáu tháng đầu năm ghi nhận mức tăng trưởng 6,3% so với cùng kỳ. Tỷ lệ hoàn thành kế hoạch đạt 104%, trong đó nhóm sản phẩm chủ lực đóng góp 62% doanh thu.
+• Duy trì tốc độ tăng trưởng ở kênh trực tuyến.
+• Kiểm soát chi phí bán hàng dưới 9% doanh thu.
+• Hoàn thiện báo cáo quản trị theo tuần từ quý III.
+Người lập: Phòng Kế hoạch - Tài chính

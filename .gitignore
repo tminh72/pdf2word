@@ -1,0 +1,32 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Kết quả sinh ra khi chạy
+sample/*.docx
+sample/*.idm.json
+sample/_scan_page.png
+out/
+benchmark/results/
+
+# Model ONNX / tessdata nặng (không commit vào git; thêm qua Git LFS hoặc copy thủ công)
+models/*.onnx
+models/tessdata/
+models/deepdoc/*.onnx
+models/deepdoc/*.traineddata
+
+# Môi trường / local
+.env
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

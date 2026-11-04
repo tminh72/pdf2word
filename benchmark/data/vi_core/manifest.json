@@ -1,0 +1,66 @@
+{
+  "name": "vi_core",
+  "version": "1.0",
+  "language": "vi",
+  "license": "CC0-1.0",
+  "description": "Dataset tiếng Việt tổng hợp cho benchmark PDF→DOCX: báo cáo tài chính, thông báo scan, báo cáo nhiều bảng và đơn hành chính. Ground truth do pdf2word biên soạn, không chứa dữ liệu khách hàng.",
+  "docs": [
+    {
+      "id": "bao_cao_tai_chinh",
+      "pdf": "pdfs/bao_cao_tai_chinh.pdf",
+      "reference": "refs/bao_cao_tai_chinh.txt",
+      "truth": "refs/bao_cao_tai_chinh.json",
+      "kind": "digital",
+      "pages": 3,
+      "tags": [
+        "digital",
+        "report",
+        "tables",
+        "toc",
+        "headings"
+      ]
+    },
+    {
+      "id": "thong_bao_tuyen_sinh_scan",
+      "pdf": "pdfs/thong_bao_tuyen_sinh_scan.pdf",
+      "reference": "refs/thong_bao_tuyen_sinh_scan.txt",
+      "truth": "refs/thong_bao_tuyen_sinh_scan.json",
+      "kind": "scanned",
+      "pages": 3,
+      "tags": [
+        "scanned",
+        "ocr",
+        "header-footer",
+        "report"
+      ]
+    },
+    {
+      "id": "bao_cao_bang",
+      "pdf": "pdfs/bao_cao_bang.pdf",
+      "reference": "refs/bao_cao_bang.txt",
+      "truth": "refs/bao_cao_bang.json",
+      "kind": "digital",
+      "pages": 3,
+      "tags": [
+        "digital",
+        "report",
+        "tables",
+        "headings"
+      ]
+    },
+    {
+      "id": "don_de_nghi",
+      "pdf": "pdfs/don_de_nghi.pdf",
+      "reference": "refs/don_de_nghi.txt",
+      "truth": "refs/don_de_nghi.json",
+      "kind": "digital",
+      "pages": 1,
+      "tags": [
+        "digital",
+        "form",
+        "tables",
+        "administrative"
+      ]
+    }
+  ]
+}

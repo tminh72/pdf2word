@@ -1,0 +1,34 @@
+{
+  "name": "builtin",
+  "description": "So sánh các chế độ của pdf2word trên cùng dataset.",
+  "pipelines": [
+    {
+      "name": "pdf2word-auto",
+      "type": "builtin",
+      "engine": "auto",
+      "polish": true,
+      "description": "Tự nhận diện PDF số/scan, hậu kỳ chính tả + font bật."
+    },
+    {
+      "name": "pdf2word-digital",
+      "type": "builtin",
+      "engine": "digital",
+      "polish": true,
+      "description": "Chỉ trích xuất PDF số; dùng làm mốc trên tài liệu digital."
+    },
+    {
+      "name": "pdf2word-ocr",
+      "type": "builtin",
+      "engine": "ocr",
+      "polish": true,
+      "description": "OCR toàn bộ bằng Tesseract vie+eng; dùng làm mốc trên tài liệu scan."
+    },
+    {
+      "name": "pdf2word-deepdoc",
+      "type": "builtin",
+      "engine": "deepdoc",
+      "polish": true,
+      "description": "OCR DeepDoc det + VietOCR ONNX, layout.onnx dò bảng kể cả không kẻ, tsr.onnx lấy cấu trúc; chạy CPU."
+    }
+  ]
+}

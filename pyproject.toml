@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdf2word"
+version = "0.1.0"
+description = "Chuyển PDF sang DOCX giữ bố cục, chạy offline trên CPU"
+license = {text = "AGPL-3.0-only"}
+requires-python = ">=3.10"
+dependencies = [
+    "pypdfium2>=4.30",
+    "pdfminer.six>=20231228",
+    "python-docx>=1.1.2",
+    "Pillow>=10.4",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = ["reportlab>=4.0", "PyInstaller>=6.6"]
+desktop = ["PySide6>=6.7"]
+deepdoc = [
+    "onnxruntime>=1.18",
+    "opencv-python-headless>=4.9",
+    "pyclipper>=1.3",
+]
+
+[project.scripts]
+pdf2word = "pdf2word.cli:main"
+pdf2word-desktop = "pdf2word.gui.app:main"
+pdf2word-benchmark = "benchmark.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pdf2word*", "benchmark*"]
+
+[tool.setuptools.package-data]
+benchmark = [
+    "configs/*.json",
+    "data/vi_core/*.json",
+    "data/vi_core/*.md",
+    "data/vi_core/pdfs/*.pdf",
+    "data/vi_core/refs/*",
+]

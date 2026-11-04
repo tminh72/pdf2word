@@ -1,0 +1,5 @@
+pypdfium2>=4.30
+pdfminer.six>=20231228
+python-docx>=1.1.2
+Pillow>=10.4
+numpy>=1.26

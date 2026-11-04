@@ -1,0 +1,22 @@
+# Từ điển sửa lỗi chính tả cho pdf2word (tuỳ chọn).
+#
+# Mỗi dòng: cụm sai => cụm đúng
+# - Không phân biệt hoa/thường; giữ kiểu hoa/thường của từ gốc.
+# - Chỉ nên thêm lỗi OCR/typo CHẮC CHẮN, tránh tên riêng và từ có thể đúng.
+# - Dòng bắt đầu bằng # là ghi chú.
+#
+# Ngoài từ điển này, pdf2word còn tự chuẩn hoá vị trí dấu thanh tiếng Việt
+# (hoà -> hòa, thuỷ -> thủy, đựơc -> được, ngừơi -> người, ...).
+
+đựơc => được
+ngừơi => người
+thựơng => thương
+trựơng => trường
+nựơc => nước
+đựơng => đường
+cựơng => cường
+thưong => thương
+ngưoi => người
+nưoc => nước
+Viêt => Việt
+nghiêp => nghiệp

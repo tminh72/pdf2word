@@ -1,0 +1,75 @@
+{
+  "name": "external-example",
+  "_comment": "Các pipeline ngoài KHÔNG được bật mặc định. Cài tool, kiểm tra lệnh, rồi đổi enabled=true. Placeholder: {input} {output} {outdir} {stem} {doc_id} {lang}.",
+  "pipelines": [
+    {
+      "name": "marker",
+      "type": "external",
+      "enabled": false,
+      "description": "Marker (marker_single) xuất Markdown. Cần cài: pip install marker-pdf.",
+      "command": [
+        "marker_single",
+        "{input}",
+        "--output_dir",
+        "{outdir}",
+        "--output_format",
+        "markdown"
+      ],
+      "artifact": "md",
+      "artifact_glob": "**/*.md",
+      "timeout": 1800
+    },
+    {
+      "name": "docling",
+      "type": "external",
+      "enabled": false,
+      "description": "IBM Docling xuất Markdown. Cần cài: pip install docling.",
+      "command": [
+        "docling",
+        "--to",
+        "md",
+        "--output",
+        "{outdir}",
+        "{input}"
+      ],
+      "artifact": "md",
+      "artifact_glob": "**/*.md",
+      "timeout": 1800
+    },
+    {
+      "name": "mineru",
+      "type": "external",
+      "enabled": false,
+      "description": "MinerU (magic-pdf). Cần cài và tải model trước; chạy offline sau khi có model.",
+      "command": [
+        "magic-pdf",
+        "-p",
+        "{input}",
+        "-o",
+        "{outdir}",
+        "-m",
+        "auto"
+      ],
+      "artifact": "md",
+      "artifact_glob": "**/*.md",
+      "timeout": 2400
+    },
+    {
+      "name": "pymupdf4llm",
+      "type": "external",
+      "enabled": false,
+      "description": "Ví dụ adapter tự viết: một script Python nhận input/output và ghi Markdown. Thay đường dẫn script bằng của bạn.",
+      "command": [
+        "python",
+        "tools/pymupdf4llm_adapter.py",
+        "{input}",
+        "{output}"
+      ],
+      "artifact": "md",
+      "timeout": 600,
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  ]
+}

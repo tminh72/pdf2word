@@ -1,0 +1,5 @@
+BANG CHI PHI THANG 10
+Khoan muc	Ke hoach	Thuc te
+Nguyen vat lieu	120	128
+Nhan cong	45	44
+Van chuyen	18	21
