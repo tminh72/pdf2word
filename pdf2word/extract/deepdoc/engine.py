@@ -717,4 +717,4 @@ def detect_dot_leaders(
     return result
 
 
-__all__ = ["DeepDocOptions", "extract"]
+__all__ = ["DeepDocOptions", "extract", "detect_dot_leaders"]
