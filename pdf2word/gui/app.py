@@ -546,8 +546,7 @@ class MainWindow(QMainWindow):
             try:
                 os.makedirs(out_dir, exist_ok=True)
             except OSError as exc:
-                QMessageBox.critical(self, "Lỗi thư mục", f"Không tạo được thư mục:
-{exc}")
+                QMessageBox.critical(self, "Lỗi thư mục", "Không tạo được thư mục:\n" + str(exc))
                 return
 
         jobs: list[tuple[int, ConvertRequest]] = []
