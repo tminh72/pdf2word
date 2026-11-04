@@ -644,4 +644,77 @@ def _guess_header_rows(cells: list[list[Cell]]) -> int:
     return 0
 
 
+
+
+def detect_dot_leaders(
+    image_bgr: np.ndarray, dpi: int = 300
+) -> list[dict]:
+    """Quet toan bo trang, tra ve cac vung dau cham leader (bbox, confidence).
+
+    Dung de phat hien muc luc co dau cham chuyen dong (dot leader) khi
+    det.onnx bo qua cac ky tu dac biet.
+    """
+    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    h, w = gray.shape[:2]
+    dark = (gray < 175).astype(np.uint8)
+    count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(dark, 8)
+
+    dots = []
+    for i in range(1, count):
+        x, y, cw, ch, area = stats[i]
+        if 2 <= cw <= 14 and 2 <= ch <= 14 and 2 <= area <= 100:
+            cx = _centroids[i][0]
+            cy = _centroids[i][1]
+            dots.append((cx, cy, cw, ch, area))
+
+    if not dots:
+        return []
+
+    # Sap xep theo y, sau do x
+    dots.sort(key=lambda d: (d[1], d[0]))
+
+    # Gom cac dot cung hang (khoang cach y nho)
+    lines: list[list[tuple]] = []
+    current = [dots[0]]
+    for d in dots[1:]:
+        if abs(d[1] - current[-1][1]) <= max(3.0, 0.45 * current[-1][3]):
+            current.append(d)
+        else:
+            lines.append(current)
+            current = [d]
+    if current:
+        lines.append(current)
+
+    # Chi nhan hang co du nhieu dot (>= 8)
+    result: list[dict] = []
+    scale = dpi / 72.0
+    for line_dots in lines:
+        if len(line_dots) < 8:
+            continue
+        xs = [d[0] for d in line_dots]
+        ys = [d[1] for d in line_dots]
+        ws = [d[2] for d in line_dots]
+        hs = [d[3] for d in line_dots]
+        bx0 = int(min(xs) - 2)
+        by0 = int(min(ys) - 2)
+        bx1 = int(max(xs) + max(ws) + 2)
+        by1 = int(max(ys) + max(hs) + 2)
+        bx0 = max(0, bx0); by0 = max(0, by0)
+        bx1 = min(w, bx1); by1 = min(h, by1)
+        result.append(
+            {
+                "bbox_px": [bx0, by0, bx1, by1],
+                "bbox_pt": [
+                    bx0 / scale,
+                    (h - by1) / scale,
+                    bx1 / scale,
+                    (h - by0) / scale,
+                ],
+                "dot_count": len(line_dots),
+                "confidence": round(min(1.0, len(line_dots) / 25.0), 3),
+            }
+        )
+    return result
+
+
 __all__ = ["DeepDocOptions", "extract"]
