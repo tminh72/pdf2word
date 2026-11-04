@@ -55,7 +55,8 @@ class GuiSmokeTest(unittest.TestCase):
         self.app.processEvents()
         self.assertEqual(self.window.pdf_preview._path, os.path.abspath(SAMPLE_PDF))
         self.assertIsNotNone(self.window.pdf_preview._doc)
-        self.assertIn("/", self.window.pdf_preview.page_label.text())
+        # v2: hiển thị tất cả trang dọc xuống, kiểm tra có ít nhất 1 trang render
+        self.assertGreaterEqual(len(self.window.pdf_preview._page_widgets), 1)
 
     def test_add_deduplicates_and_expands_folder(self) -> None:
         folder = os.path.dirname(SAMPLE_PDF)

@@ -10,7 +10,6 @@ from PySide6.QtGui import QAction, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
-    QCheckBox,
     QComboBox,
     QFileDialog,
     QFormLayout,
@@ -34,14 +33,13 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__
-from ..extract.ocr import default_tessdata, find_tesseract
 from ..service import ConvertRequest, ConvertResult, zip_outputs
 from .preview import DocxPreview, PdfPreview
 from .worker import ConvertWorker, find_soffice
 
 APP_NAME = "pdf2word"
 ORG_NAME = "pdf2word"
-COL_NAME, COL_PAGES, COL_STATUS, COL_RESULT = range(4)
+COL_NAME, COL_PAGES, COL_STATUS, COL_RESULT, COL_DELETE = range(5)
 
 
 def parse_pages(value: str) -> tuple[int, int] | None:
@@ -86,8 +84,8 @@ class PdfTable(QTableWidget):
     files_dropped = Signal(list)
 
     def __init__(self, parent=None) -> None:
-        super().__init__(0, 4, parent)
-        self.setHorizontalHeaderLabels(["File PDF", "Trang", "Trạng thái", "Kết quả"])
+        super().__init__(0, 5, parent)
+        self.setHorizontalHeaderLabels(["File PDF", "Trang", "Trạng thái", "Kết quả", "Xóa"])
         self.verticalHeader().setVisible(False)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -99,6 +97,7 @@ class PdfTable(QTableWidget):
         self.setColumnWidth(COL_NAME, 240)
         self.setColumnWidth(COL_PAGES, 52)
         self.setColumnWidth(COL_STATUS, 120)
+        self.setColumnWidth(COL_DELETE, 50)
 
     def dragEnterEvent(self, event) -> None:  # noqa: N802 - Qt
         if event.mimeData().hasUrls():
@@ -243,6 +242,11 @@ class MainWindow(QMainWindow):
             }
             QPushButton#secondaryButton:hover { background:#ececec; }
             QPushButton#secondaryButton:disabled { color:#aaa; }
+            QPushButton#deleteButton {
+                background:#fff; color:#c62828; font-weight:600;
+                border:1px solid #c62828; border-radius:3px; padding:4px 8px;
+            }
+            QPushButton#deleteButton:hover { background:#ffebee; }
             QLabel#fileLabel { color:#444; padding:2px 2px 0 2px; }
             QProgressBar { border:1px solid #d0d0d0; border-radius:4px; background:#f0f0f0; }
             QProgressBar::chunk { background:#1565c0; border-radius:3px; }
@@ -353,11 +357,8 @@ class MainWindow(QMainWindow):
         form = QFormLayout(box)
         form.setLabelAlignment(Qt.AlignRight)
 
-        self.engine_box = QComboBox()
-        self.engine_box.addItem("Tự động (khuyến nghị)", "auto")
-        self.engine_box.addItem("PDF số (nhanh, giữ font)", "digital")
-        self.engine_box.addItem("OCR (PDF scan, Tesseract)", "ocr")
-        self.engine_box.addItem("OCR DeepDoc + VietOCR (CPU)", "deepdoc")
+        # Chỉ giữ engine deepdoc (mặc định), không hiển thị trên UI
+        self.engine = "deepdoc"
 
         self.pages_edit = QLineEdit()
         self.pages_edit.setPlaceholderText("VD 1-5, để trống = tất cả")
@@ -391,31 +392,17 @@ class MainWindow(QMainWindow):
         out_widget = QWidget()
         out_widget.setLayout(out_row)
 
-        self.chk_tables = QCheckBox("Dựng bảng")
-        self.chk_tables.setChecked(True)
-        self.chk_images = QCheckBox("Tách ảnh")
-        self.chk_images.setChecked(True)
-        self.chk_breaks = QCheckBox("Ngắt trang theo PDF")
-        self.chk_breaks.setChecked(True)
-        self.chk_pagenum = QCheckBox("Giữ số trang ở lề")
-        self.chk_pagenum.setChecked(False)
+        # Các tùy chọn bảng/ảnh/ngắt trang/số trang: đặt mặc định, không hiện UI
+        self.extract_tables = True
+        self.extract_images = True
+        self.page_breaks = True
+        self.keep_page_numbers = False
 
-        checks = QHBoxLayout()
-        checks.addWidget(self.chk_tables)
-        checks.addWidget(self.chk_images)
-        checks.addWidget(self.chk_breaks)
-        checks.addWidget(self.chk_pagenum)
-        checks.addStretch(1)
-        checks_widget = QWidget()
-        checks_widget.setLayout(checks)
-
-        form.addRow("Chế độ:", self.engine_box)
         form.addRow("Trang:", self.pages_edit)
-        form.addRow("OCR:", self.dpi_spin)
+        form.addRow("OCR DPI:", self.dpi_spin)
         form.addRow("Ngôn ngữ:", self.lang_box)
         form.addRow("Font chữ:", self.font_box)
         form.addRow("Thư mục ra:", out_widget)
-        form.addRow("", checks_widget)
         return box
 
     # ------------------------------------------------------------------
@@ -455,18 +442,28 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, COL_PAGES, QTableWidgetItem("—"))
             self.table.setItem(row, COL_STATUS, QTableWidgetItem("Chờ"))
             self.table.setItem(row, COL_RESULT, QTableWidgetItem(""))
+            btn_delete = QPushButton("Xóa")
+            btn_delete.setObjectName("deleteButton")
+            btn_delete.clicked.connect(lambda checked, r=row: self.delete_row(r))
+            self.table.setCellWidget(row, COL_DELETE, btn_delete)
             if first_added < 0:
                 first_added = row
             added += 1
         if added:
             self._log(f"Đã thêm {added} file.")
             self.statusBar().showMessage(f"Đã thêm {added} file PDF.")
-            # Chọn file đầu tiên vừa thêm để hiện ngay PDF + đường dẫn.
             self.table.selectRow(first_added)
             self.table.scrollToItem(self.table.item(first_added, COL_NAME))
             self.tabs.setCurrentIndex(0)
         elif pdfs:
             self.statusBar().showMessage("Các file này đã có trong danh sách.")
+
+    def delete_row(self, row: int) -> None:
+        if self.worker is not None and self.worker.isRunning():
+            return
+        self.table.removeRow(row)
+        self.rows.pop(row)
+        self._refresh_previews()
 
     def remove_selected(self) -> None:
         if self.worker is not None and self.worker.isRunning():
@@ -504,72 +501,54 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Chưa có file", "Hãy thêm ít nhất một file PDF.")
             return
 
-        engine = self.engine_box.currentData()
+        engine = self.engine  # luôn "deepdoc"
         try:
             pages = parse_pages(self.pages_edit.text())
         except ValueError as exc:
             QMessageBox.warning(self, "Trang không hợp lệ", str(exc))
             return
 
-        if engine in ("auto", "ocr"):
-            try:
-                find_tesseract()
-                if not default_tessdata():
-                    raise RuntimeError("Thiếu thư mục models/tessdata.")
-            except Exception as exc:  # noqa: BLE001
-                if engine == "ocr":
-                    QMessageBox.critical(
-                        self,
-                        "Chưa sẵn sàng OCR",
-                        "Không tìm thấy Tesseract 5 hoặc model tiếng Việt.\n\n"
-                        f"Chi tiết: {exc}\n\n"
-                        "Cài Tesseract và đặt vie.traineddata vào models/tessdata, "
-                        "hoặc chọn chế độ 'PDF số'.",
-                    )
-                    return
-                self._log("Cảnh báo: không thấy Tesseract; file scan sẽ không OCR được.")
+        # Kiểm tra model deepdoc
+        try:
+            from ..extract.deepdoc import find_model_dir
 
-        if engine == "deepdoc":
-            try:
-                from ..extract.deepdoc import find_model_dir
-
-                model_dir = find_model_dir()
-                missing = [
-                    name
-                    for name in (
-                        "cnn.onnx",
-                        "encoder.onnx",
-                        "decoder.onnx",
-                        "tsr.onnx",
-                        "layout.onnx",
-                        "vocab.txt",
-                    )
-                    if not os.path.isfile(os.path.join(model_dir, name))
-                ]
-                if missing:
-                    raise RuntimeError("Thiếu model: " + ", ".join(missing))
-            except Exception as exc:  # noqa: BLE001
-                QMessageBox.critical(
-                    self,
-                    "Chưa sẵn sàng DeepDoc",
-                    "Không tìm thấy model DeepDoc hoặc thiếu onnxruntime/opencv.\n\n"
-                    f"Chi tiết: {exc}\n\n"
-                    "Cài: pip install -e .[deepdoc] và đặt model vào models/deepdoc.",
+            model_dir = find_model_dir()
+            missing = [
+                name
+                for name in (
+                    "cnn.onnx",
+                    "encoder.onnx",
+                    "decoder.onnx",
+                    "tsr.onnx",
+                    "layout.onnx",
+                    "vocab.txt",
                 )
-                return
+                if not os.path.isfile(os.path.join(model_dir, name))
+            ]
+            if missing:
+                raise RuntimeError("Thiếu model: " + ", ".join(missing))
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Chưa sẵn sàng DeepDoc",
+                "Không tìm thấy model DeepDoc hoặc thiếu onnxruntime/opencv.\n"
+                f"Chi tiết: {exc}\n"
+                "Cài: pip install -e .[deepdoc] và đặt model vào models/deepdoc.",
+            )
+            return
 
         out_dir = self.out_edit.text().strip()
         if out_dir and not os.path.isdir(out_dir):
             try:
                 os.makedirs(out_dir, exist_ok=True)
             except OSError as exc:
-                QMessageBox.critical(self, "Lỗi thư mục", f"Không tạo được thư mục:\n{exc}")
+                QMessageBox.critical(self, "Lỗi thư mục", "Không tạo được thư mục:\n" + str(exc))
                 return
 
         jobs: list[tuple[int, ConvertRequest]] = []
         used_outputs: set[str] = set()
         font = self.font_box.currentData()
-        polish = True  # chuẩn hoá chính tả luôn bật, ẩn khỏi UI cho gọn
+        polish = True  # chuẩn hoá chính tả luôn bật
         for row_index, row in enumerate(self.rows):
             output = self._output_for(row["input"], out_dir, used_outputs)
             used_outputs.add(os.path.normcase(output))
@@ -590,10 +569,10 @@ class MainWindow(QMainWindow):
                         pages=pages,
                         ocr_dpi=self.dpi_spin.value(),
                         lang=self.lang_box.currentText().strip() or "vie+eng",
-                        images=self.chk_images.isChecked(),
-                        tables=self.chk_tables.isChecked(),
-                        page_breaks=self.chk_breaks.isChecked(),
-                        keep_page_numbers=self.chk_pagenum.isChecked(),
+                        images=self.extract_images,
+                        tables=self.extract_tables,
+                        page_breaks=self.page_breaks,
+                        keep_page_numbers=self.keep_page_numbers,
                         polish=polish,
                         font=font,
                     ),
@@ -608,7 +587,7 @@ class MainWindow(QMainWindow):
         if font:
             extra.append(f"font {font}")
         suffix = f" — {', '.join(extra)}" if extra else ""
-        self._log(f"Bắt đầu chuyển đổi {len(jobs)} file (chế độ {engine}){suffix}.")
+        self._log(f"Bắt đầu chuyển đổi {len(jobs)} file (chế độ deepdoc){suffix}.")
 
         worker = ConvertWorker(jobs, self)
         worker.file_started.connect(self._on_file_started)
@@ -652,16 +631,11 @@ class MainWindow(QMainWindow):
             self.act_clear,
             self.btn_add,
             self.btn_add_dir,
-            self.engine_box,
             self.pages_edit,
             self.dpi_spin,
             self.lang_box,
             self.font_box,
             self.out_edit,
-            self.chk_tables,
-            self.chk_images,
-            self.chk_breaks,
-            self.chk_pagenum,
         ):
             widget.setEnabled(not running)
 
@@ -800,7 +774,7 @@ class MainWindow(QMainWindow):
             return
         try:
             zip_outputs(outputs, path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             QMessageBox.critical(self, "Lỗi ZIP", str(exc))
             return
         self._log(f"Đã đóng gói {len(outputs)} file → {path}")
@@ -836,8 +810,7 @@ class MainWindow(QMainWindow):
             "Giới thiệu pdf2word",
             f"<b>pdf2word {__version__}</b><br>"
             "Chuyển PDF sang Word, chạy offline trên CPU.<br><br>"
-            "• PDF số: pdfminer.six + pypdfium2<br>"
-            "• PDF scan: Tesseract 5 (vie+eng)<br>"
+            "• Engine: DeepDoc + VietOCR ONNX (CPU)<br>"
             f"• Xem trước DOCX: {'LibreOffice' if soffice else 'dạng văn bản (chưa có LibreOffice)'}<br><br>"
             "Không gửi dữ liệu ra ngoài.",
         )
@@ -847,9 +820,6 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def _restore_settings(self) -> None:
         s = self.settings
-        idx = self.engine_box.findData(s.value("engine", "auto"))
-        if idx >= 0:
-            self.engine_box.setCurrentIndex(idx)
         self.pages_edit.setText(s.value("pages", "") or "")
         self.dpi_spin.setValue(int(s.value("dpi", 300)))
         self.lang_box.setCurrentText(s.value("lang", "vie+eng") or "vie+eng")
@@ -858,26 +828,17 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self.font_box.setCurrentIndex(idx)
         self.out_edit.setText(s.value("out_dir", "") or "")
-        self.chk_tables.setChecked(s.value("tables", True, type=bool))
-        self.chk_images.setChecked(s.value("images", True, type=bool))
-        self.chk_breaks.setChecked(s.value("breaks", True, type=bool))
-        self.chk_pagenum.setChecked(s.value("pagenum", False, type=bool))
         geometry = s.value("geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
 
     def _save_settings(self) -> None:
         s = self.settings
-        s.setValue("engine", self.engine_box.currentData())
         s.setValue("pages", self.pages_edit.text())
         s.setValue("dpi", self.dpi_spin.value())
         s.setValue("lang", self.lang_box.currentText())
         s.setValue("font", self.font_box.currentData() or "")
         s.setValue("out_dir", self.out_edit.text())
-        s.setValue("tables", self.chk_tables.isChecked())
-        s.setValue("images", self.chk_images.isChecked())
-        s.setValue("breaks", self.chk_breaks.isChecked())
-        s.setValue("pagenum", self.chk_pagenum.isChecked())
         s.setValue("geometry", self.saveGeometry())
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt
@@ -925,4 +886,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise System.exit(main())
