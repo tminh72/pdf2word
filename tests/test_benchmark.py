@@ -71,9 +71,20 @@ class MarkdownTest(unittest.TestCase):
             src = Path(tmp) / "x.md"
             dest = Path(tmp) / "x.docx"
             src.write_text(
-                "# Tiêu đề\n\nĐoạn văn **quan trọng**.\n\n"
-                "| Chỉ tiêu | Giá trị |\n|---|---|\n| Doanh thu | 128,4 |\n| Chi phí | 112,1 |\n\n"
-                "- Mục một\n- Mục hai\n",
+                "# Tiêu đề
+
+Đoạn văn **quan trọng**.
+
+"
+                "| Chỉ tiêu | Giá trị |
+|---|---|
+| Doanh thu | 128,4 |
+| Chi phí | 112,1 |
+
+"
+                "- Mục một
+- Mục hai
+",
                 encoding="utf-8",
             )
             convert_artifact(str(src), str(dest))
@@ -158,8 +169,10 @@ class RunnerTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             script = Path(tmp) / "adapter.py"
             script.write_text(
-                "import pathlib, sys\n"
-                "pathlib.Path(sys.argv[1]).write_text('# Tiêu đề\\n\\nNội dung thử nghiệm.\\n', encoding='utf-8')\n",
+                "import pathlib, sys
+"
+                "pathlib.Path(sys.argv[1]).write_text('# Tiêu đề\n\nNội dung thử nghiệm.\n', encoding='utf-8')
+",
                 encoding="utf-8",
             )
             pipeline = Pipeline(
