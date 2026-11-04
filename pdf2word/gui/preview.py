@@ -8,7 +8,7 @@ import shutil
 
 import pypdfium2 as pdfium
 from PIL import Image
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
@@ -27,29 +27,16 @@ from .worker import SofficeWorker, find_soffice
 
 
 class PdfPreview(QWidget):
-    """Xem PDF bằng pypdfium2, không cần thư viện ngoài."""
+    """Xem PDF bằng pypdfium2, hien thi tat cac trang doc xuong."""
 
-    ZOOMS = [("Vừa chiều rộng", 0.0), ("100%", 1.0), ("125%", 1.25), ("150%", 1.5), ("200%", 2.0)]
+    ZOOMS = [("Vua chieu rong", 0.0), ("100%", 1.0), ("125%", 1.25), ("150%", 1.5), ("200%", 2.0)]
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._doc = None
         self._path: str | None = None
-        self._page = 0
         self._zoom = 0.0
-
-        self.prev_btn = QToolButton()
-        self.prev_btn.setText("‹")
-        self.prev_btn.setToolTip("Trang trước")
-        self.prev_btn.clicked.connect(lambda: self._step(-1))
-        self.next_btn = QToolButton()
-        self.next_btn.setText("›")
-        self.next_btn.setToolTip("Trang sau")
-        self.next_btn.clicked.connect(lambda: self._step(1))
-
-        self.page_label = QLabel("—")
-        self.page_label.setAlignment(Qt.AlignCenter)
-        self.page_label.setMinimumWidth(70)
+        self._page_widgets: list = []
 
         self.zoom_box = QComboBox()
         for label, value in self.ZOOMS:
@@ -58,19 +45,18 @@ class PdfPreview(QWidget):
 
         bar = QHBoxLayout()
         bar.setContentsMargins(4, 2, 4, 2)
-        bar.addWidget(self.prev_btn)
-        bar.addWidget(self.page_label)
-        bar.addWidget(self.next_btn)
         bar.addStretch(1)
+        bar.addWidget(QLabel("Phong to:"))
         bar.addWidget(self.zoom_box)
 
-        self.canvas = QLabel()
-        self.canvas.setAlignment(Qt.AlignCenter)
-        self.canvas.setText("Chưa chọn file PDF")
-        self.canvas.setStyleSheet("color:#888; padding:24px;")
+        self.container = QWidget()
+        self.container_layout = QVBoxLayout(self.container)
+        self.container_layout.setContentsMargins(8, 8, 8, 8)
+        self.container_layout.setSpacing(12)
+
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
-        self.scroll.setWidget(self.canvas)
+        self.scroll.setWidget(self.container)
         self.scroll.setAlignment(Qt.AlignCenter)
 
         layout = QVBoxLayout(self)
@@ -78,28 +64,21 @@ class PdfPreview(QWidget):
         layout.addLayout(bar)
         layout.addWidget(self.scroll, 1)
 
-        self._timer = QTimer(self)
-        self._timer.setSingleShot(True)
-        self._timer.setInterval(120)
-        self._timer.timeout.connect(self._render)
-
         self._set_controls(False)
 
-    # ------------------------------------------------------------------
     def load(self, path: str) -> None:
         self.clear()
         if not path or not os.path.exists(path):
-            self.canvas.setText("Không tìm thấy file PDF")
+            self._show_message("Khong tim thay file PDF")
             return
         try:
             self._doc = pdfium.PdfDocument(path)
-        except Exception as exc:  # noqa: BLE001
-            self.canvas.setText(f"Không mở được PDF:\n{exc}")
+        except Exception as exc:
+            self._show_message("Khong mo duoc PDF:\n" + str(exc))
             return
         self._path = path
-        self._page = 0
         self._set_controls(True)
-        self._render()
+        self._render_all()
 
     def clear(self) -> None:
         if self._doc is not None:
@@ -109,59 +88,73 @@ class PdfPreview(QWidget):
                 pass
             self._doc = None
         self._path = None
-        self._page = 0
-        self.canvas.setPixmap(QPixmap())
-        self.canvas.setText("Chưa chọn file PDF")
-        self.page_label.setText("—")
+        self._zoom = 0.0
+        self._clear_pages()
+        self._show_message("Chua chon file PDF")
         self._set_controls(False)
 
-    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt
-        super().resizeEvent(event)
-        if self._zoom == 0.0:
-            self._timer.start()
+    def _show_message(self, text: str) -> None:
+        for w in self._page_widgets:
+            w.setPixmap(QPixmap())
+            w.setText(text)
+        if not self._page_widgets:
+            lbl = QLabel(text)
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setStyleSheet("color:#888; padding:24px;")
+            self.container_layout.addWidget(lbl)
+            self._page_widgets.append(lbl)
 
-    # ------------------------------------------------------------------
+    def _clear_pages(self) -> None:
+        for w in self._page_widgets:
+            self.container_layout.removeWidget(w)
+            w.deleteLater()
+        self._page_widgets.clear()
+
     def _set_controls(self, enabled: bool) -> None:
-        self.prev_btn.setEnabled(enabled)
-        self.next_btn.setEnabled(enabled)
         self.zoom_box.setEnabled(enabled)
-
-    def _step(self, delta: int) -> None:
-        if not self._doc:
-            return
-        self._page = max(0, min(len(self._doc) - 1, self._page + delta))
-        self._render()
 
     def _on_zoom(self) -> None:
         self._zoom = float(self.zoom_box.currentData() or 0.0)
-        self._render()
+        self._render_all()
 
-    def _render(self) -> None:
+    def _render_all(self) -> None:
         if self._doc is None:
             return
         try:
-            page = self._doc[self._page]
-            width_pt, _height_pt = page.get_size()
-            if self._zoom > 0:
-                scale = self._zoom
-            else:
-                viewport = max(200, self.scroll.viewport().width() - 12)
-                scale = max(0.1, min(4.0, viewport / max(width_pt, 1.0)))
+            self._clear_pages()
+            total = len(self._doc)
+            viewport_w = max(200, self.scroll.viewport().width() - 12)
 
-            bitmap = page.render(scale=scale)
-            pil: Image.Image = bitmap.to_pil().convert("RGB")
-            data = pil.tobytes("raw", "RGB")
-            image = QImage(
-                data, pil.width, pil.height, pil.width * 3, QImage.Format_RGB888
-            ).copy()
-            self.canvas.setPixmap(QPixmap.fromImage(image))
-            self.canvas.setText("")
-            self.page_label.setText(f"{self._page + 1} / {len(self._doc)}")
-            pil.close()
-            bitmap.close()
-            page.close()
-        except Exception as exc:  # noqa: BLE001
-            self.canvas.setText(f"Không render được trang:\n{exc}")
+            for i in range(total):
+                page = self._doc[i]
+                width_pt, height_pt = page.get_size()
+                if self._zoom > 0:
+                    scale = self._zoom
+                else:
+                    scale = max(0.1, min(4.0, viewport_w / max(width_pt, 1.0)))
+
+                bitmap = page.render(scale=scale)
+                pil: Image.Image = bitmap.to_pil().convert("RGB")
+                data = pil.tobytes("raw", "RGB")
+                image = QImage(
+                    data, pil.width, pil.height, pil.width * 3, QImage.Format_RGB888
+                ).copy()
+                pix = QPixmap.fromImage(image)
+
+                lbl = QLabel()
+                lbl.setPixmap(pix)
+                lbl.setAlignment(Qt.AlignCenter)
+                lbl.setStyleSheet("border:1px solid #ddd; margin:4px 0;")
+                self.container_layout.addWidget(lbl)
+                self._page_widgets.append(lbl)
+
+                pil.close()
+                bitmap.close()
+                page.close()
+
+            self.container_layout.addStretch(1)
+        except Exception as exc:
+            self._show_message("Khong render duoc PDF:\n" + str(exc))
 
 
 def _iter_block_items(doc):
@@ -177,16 +170,22 @@ def _iter_block_items(doc):
 
 
 def docx_to_html(path: str) -> str:
-    """Chuyển DOCX thành HTML đơn giản để xem nhanh khi không có LibreOffice."""
+    """Chuyen DOCX thanh HTML don gian de xem nhanh khi khong co LibreOffice.
+    Them duong gach ranh giua cac trang."""
     from docx import Document as DocxDocument
     from docx.table import Table
 
     doc = DocxDocument(path)
-    parts: list[str] = [
-        "<style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;}"
+    parts = [
+        "<style>"
+        "body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;line-height:1.4;}"
         "h1{font-size:17pt}h2{font-size:14pt}h3{font-size:12pt}"
-        "table{border-collapse:collapse;margin:6px 0}td,th{border:1px solid #bbb;padding:3px 5px}</style>"
+        "table{border-collapse:collapse;margin:6px 0}td,th{border:1px solid #bbb;padding:3px 5px}"
+        ".page-break{border-top:1px solid #999;margin-top:14px;padding-top:8px;page-break-before:always;}"
+        ".page-first{margin-top:0;border-top:none;}"
+        "</style>"
     ]
+    first = True
     for block in _iter_block_items(doc):
         if isinstance(block, Table):
             rows = []
@@ -211,19 +210,20 @@ def docx_to_html(path: str) -> str:
                 level = min(4, int(digits) + 1)
             parts.append(f"<h{level}>{escaped}</h{level}>")
         else:
-            parts.append(f"<p>{escaped}</p>")
+            cls = "page-first" if first else "page-break"
+            first = False
+            parts.append(f'<p class="{cls}">{escaped}</p>')
     return "\n".join(parts)
 
-
 class DocxPreview(QWidget):
-    """Xem DOCX: bản văn bản, hoặc bản trang in qua LibreOffice nếu có."""
+    """Xem DOCX: ban van ban, hoac ban trang in qua LibreOffice neu co."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._path: str | None = None
-        self._worker: SofficeWorker | None = None
+        self._worker = None
         self._gen = 0
-        self._rendered_dirs: list[str] = []
+        self._rendered_dirs: list = []
         self.soffice = find_soffice()
 
         self.text_view = QTextBrowser()
@@ -233,7 +233,7 @@ class DocxPreview(QWidget):
         self.stack.addWidget(self.text_view)
         self.stack.addWidget(self.page_view)
 
-        self.text_btn = QPushButton("Văn bản")
+        self.text_btn = QPushButton("Van ban")
         self.page_btn = QPushButton("Trang in")
         self.text_btn.setCheckable(True)
         self.page_btn.setCheckable(True)
@@ -242,7 +242,7 @@ class DocxPreview(QWidget):
         self.page_btn.clicked.connect(lambda: self._show(1))
         self.page_btn.setEnabled(bool(self.soffice))
 
-        self.status = QLabel("Chưa có kết quả DOCX")
+        self.status = QLabel("Chua co ket qua DOCX")
         self.status.setStyleSheet("color:#777; padding:2px 6px;")
 
         bar = QHBoxLayout()
@@ -258,12 +258,11 @@ class DocxPreview(QWidget):
         layout.addWidget(self.stack, 1)
 
         if not self.soffice:
-            self.status.setText("Chưa cài LibreOffice — chỉ xem được dạng văn bản")
+            self.status.setText("Chua cai LibreOffice — chi xem duoc dang van ban")
 
-    # ------------------------------------------------------------------
     def load(self, path: str) -> None:
         if not path or not os.path.exists(path):
-            self.clear("Chưa có kết quả DOCX")
+            self.clear("Chua co ket qua DOCX")
             return
         if path == self._path and self.page_view._path:
             return
@@ -277,7 +276,7 @@ class DocxPreview(QWidget):
 
         if self.soffice:
             self._show(0)
-            self.status.setText("Đang render bản trang in…")
+            self.status.setText("Dang render ban trang in…")
             worker = SofficeWorker(path, self)
             worker.finished_ok.connect(lambda pdf, gen=gen: self._on_rendered(pdf, gen))
             worker.failed.connect(lambda msg, gen=gen: self._on_render_failed(msg, gen))
@@ -286,7 +285,7 @@ class DocxPreview(QWidget):
             self._worker = worker
             worker.start()
 
-    def clear(self, message: str = "Chưa chọn file DOCX") -> None:
+    def clear(self, message: str = "Chua chon file DOCX") -> None:
         self._gen += 1
         self._path = None
         self.page_view.clear()
@@ -300,12 +299,11 @@ class DocxPreview(QWidget):
             shutil.rmtree(folder, ignore_errors=True)
         self._rendered_dirs.clear()
 
-    def closeEvent(self, event) -> None:  # noqa: N802 - Qt
+    def closeEvent(self, event) -> None:
         self.page_view.clear()
         self._cleanup_rendered()
         super().closeEvent(event)
 
-    # ------------------------------------------------------------------
     def _show(self, index: int) -> None:
         if index == 1 and not self.soffice:
             return
@@ -318,7 +316,7 @@ class DocxPreview(QWidget):
             return
         self.page_view.load(pdf_path)
         self._show(1)
-        self.status.setText("Bản trang in (LibreOffice)")
+        self.status.setText("Ban trang in (LibreOffice)")
 
     def _on_render_failed(self, message: str, gen: int) -> None:
         if gen != self._gen:
