@@ -1,7 +1,7 @@
-"""Dịch vụ chuyển đổi dùng chung cho CLI và app desktop.
+"""Dich vu chuyen doi dung chung cho CLI va app desktop.
 
-Gom một lần chạy convert (đọc PDF → IDM → ghi DOCX) kèm thống kê, tiến trình
-và huỷ giữa chừng.
+Gom mot lan chay convert (doc PDF -> IDM -> ghi DOCX) ke thong ke, tien trinh
+va huy giua chuen.
 """
 
 from __future__ import annotations
@@ -27,20 +27,18 @@ CancelFn = Callable[[], bool]
 class ConvertRequest:
     input: str
     output: str
-    engine: str = "auto"  # auto | digital | ocr | deepdoc
+    engine: str = "deepdoc"  # chi con deepdoc
     pages: tuple[int, int] | None = None
     dpi_images: int = 200
     ocr_dpi: int = 300
     lang: str = "vie+eng"
-    tesseract: str | None = None
-    tessdata: str | None = None
     deepdoc_model: str | None = None
     images: bool = True
     tables: bool = True
     page_breaks: bool = True
     keep_page_numbers: bool = False
     polish: bool = True
-    font: str | None = None  # None = giữ font gốc (đã chuẩn hoá tên)
+    font: str | None = None  # None = giu font goc (da chuan hoa ten)
     debug: bool = False
     assets_dir: str | None = None
 
@@ -50,7 +48,7 @@ class ConvertResult:
     input: str
     output: str
     pages: int = 0
-    engine: str = "?"
+    engine: str = "deepdoc"
     headings: int = 0
     toc: int = 0
     tables: int = 0
@@ -71,7 +69,7 @@ def convert_file(
     progress: ProgressFn | None = None,
     cancel: CancelFn | None = None,
 ) -> ConvertResult:
-    """Chạy một file. Trả về ConvertResult; ném ngoại lệ nếu lỗi."""
+    """Chay mot file. Tra ve ConvertResult; nem ngoai le neu loi."""
     pdf_path = os.path.abspath(request.input)
     out_path = os.path.abspath(request.output)
 
@@ -80,8 +78,6 @@ def convert_file(
         dpi_images=request.dpi_images,
         dpi_scan=request.ocr_dpi,
         lang=request.lang,
-        tesseract_cmd=request.tesseract,
-        tessdata_dir=request.tessdata,
         deepdoc_model_dir=request.deepdoc_model,
         extract_images=request.images,
         extract_tables=request.tables,
@@ -113,7 +109,7 @@ def convert_file(
             input=pdf_path,
             output=out_path,
             pages=len(doc.pages),
-            engine=doc.meta.get("engine", "?"),
+            engine=doc.meta.get("engine", "deepdoc"),
             headings=sum(1 for p in doc.pages for b in p.blocks if b.kind in ("heading", "title")),
             toc=sum(1 for p in doc.pages for b in p.blocks if b.kind == "toc"),
             tables=sum(1 for p in doc.pages for b in p.blocks if b.kind == "table"),
@@ -135,7 +131,7 @@ def convert_file(
 
 
 def zip_outputs(paths: list[str], zip_path: str) -> str:
-    """Nén các file DOCX thành một ZIP (giữ tên file, xử lý trùng tên)."""
+    """Nen cac file DOCX thanh mot ZIP (giu ten file, xu ly trung ten)."""
     os.makedirs(os.path.dirname(os.path.abspath(zip_path)) or ".", exist_ok=True)
     used: set[str] = set()
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
